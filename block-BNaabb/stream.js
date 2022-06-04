@@ -8,12 +8,11 @@ function handleRequest(req, res) {
     store += chunk;
   });
   req.on('end', () => {
-    console.log(store);
+    res.write(store, () => {
+      console.log('writing store data...');
+    });
+    res.end();
   });
-  res.write(store, () => {
-    console.log('writing store data...');
-  });
-  res.end();
 }
 
 server.listen(3456, () => {
