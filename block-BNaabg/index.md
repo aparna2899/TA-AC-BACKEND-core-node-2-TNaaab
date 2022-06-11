@@ -1,4 +1,4 @@
-## BLOCK-writeCode
+e## BLOCK-writeCode
 
 ### Final project
 
@@ -55,15 +55,15 @@ Entire code should look like:
 
 ```js
 // define a users directory at top where all users will be stored
-const userDir = __dirname + "/users/";
+const userDir = __dirname + '/users/';
 // OR using path module
 // make sure to require path module if using
-const userDir = path.join(__dirname, "users/");
+const userDir = path.join(__dirname, 'users/');
 
 // captured data in stringified JSON format
-var store = "some data here";
+var store = 'some data here';
 // check for post request coming on '/users'
-if (req.url === "/users" && req.method === "POST") {
+if (req.url === '/users' && req.method === 'POST') {
   // grab the username from store data
   var username = JSON.parse(store).username;
   // check whether this username exists in users directory or not
@@ -72,7 +72,7 @@ if (req.url === "/users" && req.method === "POST") {
 
   // wx flag ensures that given username.json should not already exist in users directory, therwise throws an error
 
-  fs.open(userDir + username + ".json", "wx", (err, fd) => {
+  fs.open(userDir + username + '.json', 'wx', (err, fd) => {
     // fd is pointing to newly created file inside users directory
     // once file is created, we can write content to file
     // since store has all the data of the user
@@ -100,7 +100,7 @@ In order to read a user, we need to pass a username whenever doing a request fro
 - recall the difference between `req.url` and `parsedUrl.pathname`
 
 ```js
-if (parsedUrl.pathname === "/users" && req.method === "GET") {
+if (parsedUrl.pathname === '/users' && req.method === 'GET') {
 }
 ```
 
@@ -138,3 +138,75 @@ Update operation is similar to create, except
 
 - flags i.e. wx -> create, r+ => update
 - during update, first we open file and remove previous content to add updated one from user.
+
+```js
+var http = require('http');
+var path = require('path');
+var qs = require('querystring');
+var fs = require('fs');
+var url = require('url');
+
+var server = http.createServer(handleRequest);
+
+function handleRequest(req, res) {
+  const userDir = path.join(__dirname, 'users/');
+  var parsedUrl = url.parse(`/users?username=user_01`, true);
+  var store = JSON.stringify({
+    name: 'user1',
+    email: 'user1@gmail.com',
+    username: 'user_01',
+    bio: 'user',
+  });
+  if (req.method === 'POST' && req.url === '/users') {
+    var username = JSON.parse(store).username;
+    fs.open(userDir + username + '.json', 'wx', (err, fd) => {
+      if (err) console.log(err);
+      fs.writeFile(fd, store, (err) => {
+        if (err) console.log(err);
+        fs.close(fd, (err) => {
+          if (err) console.log(err);
+          res.end(`${username} successfully created!`);
+        });
+      });
+    });
+  } else if (req.method === 'GET' && parsedUrl.pathname === '/users') {
+    var username = parsedUrl.query.username;
+    fs.readFile(`./users/${username}.json`, (err, content) => {
+      if (err) console.log(err);
+      res.end(content);
+    });
+  } else if (req.method === 'PUT' && req.url === '/users?username=user_02') {
+    var username = url.parse(req.url, true).query.username;
+    fs.open(userDir + username + '.json', 'r+', (err, fd) => {
+      fs.ftruncate(fd, (err) => {
+        if (err) console.log(err);
+        var newData = '';
+        req.on('data', (chunk) => {
+          newData += chunk;
+        });
+        req.on('end', () => {
+          fs.writeFile(fd, newData, (err) => {
+            if (err) console.log(err);
+            fs.close(fd, (err) => {
+              res.end(`${username} successfully updated!`);
+            });
+          });
+        });
+      });
+    });
+  } else if (req.method === 'DELETE' && req.url === '/users?username=user_01') {
+    var username = url.parse(req.url, true).query.username;
+    fs.unlink(`./users/${username}.json`, (err) => {
+      if (err) console.log(err);
+      res.end(`${username}.json is successfully deleted!`);
+    });
+  } else {
+    res.statusCode = 404;
+    res.end('Page Not Found');
+  }
+}
+
+server.listen(3456, () => {
+  console.log('server is listening on port 3456');
+});
+```
